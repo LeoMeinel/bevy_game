@@ -1,5 +1,5 @@
 [package]
-name = "leomeinel_sample"
+name = "bevy_game"
 version = "0.1.0"
 authors = ["Leopold Johannes Meinel"]
 edition = "2021"
@@ -11,6 +11,7 @@ license = "GPL-3.0-or-later"
 
 [dependencies]
 bevy = "0.8.1"
+colored = "2.0.0"
 
 [profile.dev]
 opt-level = 0
