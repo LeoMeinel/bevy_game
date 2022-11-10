@@ -13,11 +13,30 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 fn main() {
     App::new()
-        .add_startup_system(add_npcs)
-        .add_startup_system(add_players.after(add_npcs))
-        .add_system(list_npcs)
-        .add_system(list_players.after(list_npcs))
+        .add_plugins(DefaultPlugins)
+        .add_plugin(InitPlugin)
+        .add_plugin(ListPlugin)
         .run();
+}
+
+// Plugins
+pub struct InitPlugin;
+
+impl Plugin for InitPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_startup_system(add_npcs)
+            .add_startup_system(add_players.after(add_npcs));
+    }
+}
+pub struct ListPlugin;
+
+impl Plugin for ListPlugin {
+    // FIXME: Currently only one of list_npcs or list_players gets called randomly
+    fn build(&self, app: &mut App) {
+        app.insert_resource(ListTimer(Timer::from_seconds(2.0, true)))
+            .add_system(list_npcs)
+            .add_system(list_players.after(list_npcs));
+    }
 }
 
 // Characters
@@ -41,6 +60,9 @@ struct Health(u8);
 #[derive(Component)]
 struct Killable(bool);
 
+// Timers
+struct ListTimer(Timer);
+
 fn add_npcs(mut commands: Commands) {
     commands
         .spawn()
@@ -50,14 +72,20 @@ fn add_npcs(mut commands: Commands) {
         .insert(Killable(true));
 }
 
-fn list_npcs(query: Query<(&Name, &Health, &Killable), With<Npc>>) {
-    println!("{}", "NPCs".bold());
-    let iter = query.iter();
-    for (i, (name, health, killable)) in &mut iter.enumerate() {
-        println!("\tID {}:", &i);
-        println!("\t\tName:\t\t{}", name.0);
-        println!("\t\tHealth:\t\t{}", health.0);
-        println!("\t\tKillable:\t{}", killable.0);
+fn list_npcs(
+    time: Res<Time>,
+    mut timer: ResMut<ListTimer>,
+    query: Query<(&Name, &Health, &Killable), With<Npc>>,
+) {
+    if timer.0.tick(time.delta()).just_finished() {
+        println!("{}", "NPCs".bold());
+        let iter = query.iter();
+        for (i, (name, health, killable)) in &mut iter.enumerate() {
+            println!("\tID {}:", &i);
+            println!("\t\tName:\t\t{}", name.0);
+            println!("\t\tHealth:\t\t{}", health.0);
+            println!("\t\tKillable:\t{}", killable.0);
+        }
     }
 }
 
@@ -80,14 +108,20 @@ fn add_players(mut commands: Commands) {
         ))));
 }
 
-fn list_players(query: Query<(&Name, &Health, &Killable, &PlayerIpAddr), With<Player>>) {
-    println!("{}", "PLAYERS".bold());
-    let iter = query.iter();
-    for (i, (name, health, killable, player_ip_addr)) in &mut iter.enumerate() {
-        println!("\tID {}:", &i);
-        println!("\t\tName:\t\t{}", name.0);
-        println!("\t\tHealth:\t\t{}", health.0);
-        println!("\t\tKillable:\t{}", killable.0);
-        println!("\t\tIP:\t\t{}", player_ip_addr.0);
+fn list_players(
+    time: Res<Time>,
+    mut timer: ResMut<ListTimer>,
+    query: Query<(&Name, &Health, &Killable, &PlayerIpAddr), With<Player>>,
+) {
+    if timer.0.tick(time.delta()).just_finished() {
+        println!("{}", "PLAYERS".bold());
+        let iter = query.iter();
+        for (i, (name, health, killable, player_ip_addr)) in &mut iter.enumerate() {
+            println!("\tID {}:", &i);
+            println!("\t\tName:\t\t{}", name.0);
+            println!("\t\tHealth:\t\t{}", health.0);
+            println!("\t\tKillable:\t{}", killable.0);
+            println!("\t\tIP:\t\t{}", player_ip_addr.0);
+        }
     }
 }
